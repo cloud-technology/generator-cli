@@ -1,0 +1,78 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.2.3'
+	id 'io.spring.dependency-management' version '1.1.4'
+	id 'org.graalvm.buildtools.native' version '0.9.28'
+}
+
+group = 'io.github.cloudtechnology'
+version = '0.0.1'
+
+java {
+	sourceCompatibility = '17'
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+	// 因為 openapi 有包此套件, 故排除
+	implementation.exclude group: 'org.slf4j', module: 'slf4j-simple'
+}
+
+repositories {
+	mavenCentral()
+}
+
+ext {
+	set('springCloudVersion', "2023.0.0")
+	set('springShellVersion', "3.2.2")
+	set('openapiGeneratorVersion', "7.2.0") // https://search.maven.org/artifact/org.openapitools/openapi-generator
+	set('jooqVersion', "3.18.7") // https://search.maven.org/search?q=a:jooq-parent
+	set('liquibaseCoreVersion', "4.26.0") // https://search.maven.org/artifact/org.liquibase/liquibase-core
+}
+
+dependencies {
+	// implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	// implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+	// implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	// implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+	implementation 'org.springframework.boot:spring-boot-starter'
+	implementation 'org.springframework.boot:spring-boot-starter-mustache'
+	implementation 'org.springframework.shell:spring-shell-starter'
+	implementation 'org.apache.commons:commons-lang3:3.14.0'
+	compileOnly 'org.projectlombok:lombok'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+	runtimeOnly 'org.postgresql:postgresql'
+	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+	annotationProcessor 'org.projectlombok:lombok'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	testImplementation 'org.testcontainers:junit-jupiter'
+	testImplementation 'org.testcontainers:postgresql'
+	//
+	implementation "org.openapitools:openapi-generator:${openapiGeneratorVersion}"
+	implementation "org.jooq:jooq:${jooqVersion}"
+	implementation "org.jooq:jooq-meta:${jooqVersion}"
+	implementation "org.jooq:jooq-codegen:${jooqVersion}"
+	implementation "org.liquibase:liquibase-core:${liquibaseCoreVersion}"
+	
+}
+
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.shell:spring-shell-dependencies:${springShellVersion}"
+		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+	}
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+graalvmNative {
+	metadataRepository {
+        enabled = true
+	}
+}

@@ -1,0 +1,19 @@
+spring:
+  main:
+    cloud-platform: kubernetes
+    banner-mode: console
+  cloud:
+    stream:
+      binders:
+        default-binder:
+          type: pubsub
+    gcp:
+      sql:
+        instance-connection-name: ${db.instance-connection-name}
+        database-name: ${db.database-name}
+  datasource:
+    username: ${db.username}
+    password: ${db.password}
+  config:
+    import:
+    - sm://

@@ -1,0 +1,95 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/ingress-status: all
+  labels:
+    cloud.googleapis.com/location: asia-east1
+  name: cfh-gai-hephaestus
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: '4'
+        autoscaling.knative.dev/minScale: '1'
+        run.googleapis.com/client-name: cloud-console
+        run.googleapis.com/cloudsql-instances: das-ct-lab:asia-east1:hephaestus-database
+        run.googleapis.com/cpu-throttling: 'false'
+        run.googleapis.com/startup-cpu-boost: 'true'
+      labels:
+        run.googleapis.com/startupProbeType: Custom
+    spec:
+      containerConcurrency: 80
+      containers:
+      - env:
+        - name: spring.profiles.active
+          value: test,gcp
+        - name: logging.level.csd.ct.ai
+          value: debug
+        - name: JAVA_TOOL_OPTIONS
+          value: -Djava.security.egd=file:/dev/./urandom -Dfile.encoding=UTF-8
+        - name: hephaestu_config
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: hephaestu_config
+        - name: hephaestus_db_password
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: hephaestus_db_password
+        name: cfh-gai-hephaestus-1
+        image: asia-east1-docker.pkg.dev/das-ct-lab/ok-gai/cfh-gai-hephaestus:0.3.2
+        livenessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 1
+        ports:
+        - containerPort: 8080
+          name: http1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        startupProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 1
+        volumeMounts:
+        - mountPath: /workspace/config
+          name: hephaestu_config
+          readOnly: true
+      - image: philipz/cloud-run-otel-collector:0.90.0
+        name: cloud-run-otel-collector-1
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+        startupProbe:
+          failureThreshold: 20
+          httpGet:
+            path: /
+            port: 13133
+          periodSeconds: 10
+          timeoutSeconds: 1
+      serviceAccountName: sa-hephaestus@das-ct-lab.iam.gserviceaccount.com
+      timeoutSeconds: 300
+      volumes:
+      - name: hephaestu_config
+        secret:
+          items:
+          - key: latest
+            path: application-test.yml
+          secretName: hephaestu_config
+  traffic:
+  - latestRevision: true
+    percent: 100

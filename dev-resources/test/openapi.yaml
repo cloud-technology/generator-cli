@@ -1,0 +1,425 @@
+openapi: 3.1.0
+x-stoplight:
+  id: uuzjkr8chkyf1
+info:
+  title: bookstore
+  version: 1.0.0
+  summary: OpenAPI 範例檔案
+  description: "詳細更多可參考 [OpenAPI 規範 中文版](https://openapi.apifox.cn/)"
+  license:
+    name: Apache 2.0
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+  contact:
+    name: API Support
+    url: "http://www.example.com/support"
+    email: support@example.com
+servers:
+  - url: "http://localhost:8080"
+    description: dev
+paths:
+  /api/v1/books:
+    post:
+      summary: 新增書本
+      tags:
+        - book
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateBookRsDto"
+              examples:
+                Example 1:
+                  value:
+                    id: "9786263336803"
+                    name: Clean Architecture 實作篇：在整潔的架構上弄髒你的手
+                    price: 600
+                    language: ZH-HANT
+                    inventory: 10
+                    createdBy: "03423422"
+                    createdTime: "2024-02-20T23:22:57.130305+08:00"
+                    modifiedBy: "1203922"
+                    modifiedTime: "2024-02-21T11:03:22.12932+08:00"
+      operationId: create-book-v1
+      x-stoplight:
+        id: pt2a2zsv8gg2r
+      description: 新增商店書本資料
+      requestBody:
+        $ref: "#/components/requestBodies/CreateBookDto"
+    get:
+      summary: 搜尋書本
+      tags:
+        - book
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookSearchRsDto"
+              examples:
+                Example 1:
+                  value:
+                    content:
+                      - id: "9786263336803"
+                        name: Clean Architecture 實作篇：在整潔的架構上弄髒你的手
+                        price: 600
+                        language: ZH-HANT
+                        inventory: 10
+                        createdBy: "03423422"
+                        createdTime: "2024-02-20T23:22:57.130305+08:00"
+                        modifiedBy: "1203922"
+                        modifiedTime: "2024-02-21T11:03:22.12932+08:00"
+                    pageable:
+                      pageNumber: 0
+                      pageSize: 20
+                      sort:
+                        - sortBy: createdTime
+                          sortOrder: desc
+                        - sortBy: age
+                          sortOrder: asc
+                      paged: true
+                      totalPages: 2
+                      totalElements: 31
+                      first: true
+                      last: false
+      operationId: search-book-v1
+      x-stoplight:
+        id: ltz7oojguh97g
+      description: 搜尋書本資料
+    parameters: []
+  "/api/v1/books/{bookId}/promotion":
+    parameters:
+      - name: bookId
+        in: path
+        required: true
+        schema:
+          type: string
+          example: "9786263336803"
+        description: 書本唯一識別碼
+    get:
+      summary: 書本促銷價
+      tags:
+        - book
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookDto"
+      operationId: update-book-promotion-v1
+      x-stoplight:
+        id: 3yt2q0yrj2rw2
+      description: 更新書書本價錢
+      requestBody:
+        $ref: "#/components/requestBodies/PromotionBookDto"
+components:
+  schemas:
+    BookLanguageEnumDto:
+      title: BookLanguageEnumDto
+      x-stoplight:
+        id: g9vfvyojmk7wl
+      description: 書本語系
+      enum:
+        - ZH-HANT
+    CreateBookRsDto:
+      type: object
+      x-stoplight:
+        id: b53137e8a2312
+      x-examples:
+        Example 1:
+          id: "9786263336803"
+          name: Clean Architecture 實作篇：在整潔的架構上弄髒你的手
+          price: 600
+          language: zh-Hant
+          inventory: 10
+          createdBy: "03423422"
+          createdTime: "2024-02-20T23:22:57.130305+08:00"
+          modifiedBy: "1203922"
+          modifiedTime: "2024-02-21T11:03:22.12932+08:00"
+      description: 新增書本回覆給呼叫者的資料結構
+      examples:
+        - id: "9786263336803"
+          name: Clean Architecture 實作篇：在整潔的架構上弄髒你的手
+          price: 600
+          language: ZH-HANT
+          inventory: 10
+          createdBy: "03423422"
+          createdTime: "2024-02-20T23:22:57.130305+08:00"
+          modifiedBy: "1203922"
+          modifiedTime: "2024-02-21T11:03:22.12932+08:00"
+      required:
+        - id
+        - name
+        - price
+        - language
+        - inventory
+        - createdBy
+        - createdTime
+        - modifiedBy
+        - modifiedTime
+      properties:
+        id:
+          type: string
+          description: 唯一識別碼
+        name:
+          type: string
+          description: 書名
+        price:
+          type: integer
+          description: 銷售價
+          minimum: 1
+        language:
+          description: 語言
+          type: string
+        inventory:
+          type: integer
+          description: 目前庫存
+        createdBy:
+          type: string
+          description: 建立者
+        createdTime:
+          type: string
+          description: 建立時間
+          format: date-time
+        modifiedBy:
+          type: string
+          description: 更新人員
+        modifiedTime:
+          type: string
+          description: 更新時間
+          format: date-time
+    PageableDto:
+      type: object
+      properties:
+        pageNumber:
+          type: integer
+          format: int32
+        pageSize:
+          type: integer
+          format: int32
+        sort:
+          type: array
+          items:
+            $ref: "#/components/schemas/PageSortDto"
+        paged:
+          type: boolean
+        totalPages:
+          type: integer
+          format: int32
+        totalElements:
+          type: integer
+          format: int64
+        first:
+          type: boolean
+        last:
+          type: boolean
+      examples:
+        - pageNumber: 0
+          pageSize: 20
+          sort:
+            - sortBy: createdTime
+              sortOrder: desc
+            - sortBy: age
+              sortOrder: asc
+          paged: true
+          totalPages: 2
+          totalElements: 31
+          first: true
+          last: false
+      x-examples:
+        Example 1:
+          pageNumber: 0
+          pageSize: 20
+          sort:
+            - sortBy: createdTime
+              sortOrder: desc
+            - sortBy: age
+              sortOrder: asc
+          paged: true
+          totalPages: 2
+          totalElements: 31
+          first: true
+          last: false
+      description: 查詢的分頁物件
+    PageSortDto:
+      type: object
+      description: 排序方式
+      properties:
+        sortBy:
+          type: string
+        sortOrder:
+          type: string
+      examples:
+        - sortBy: createdTime
+          sortOrder: desc
+      x-examples:
+        Example 1:
+          sortBy: createdTime
+          sortOrder: desc
+    BookSearchRsDto:
+      title: BookSearchRsDto
+      x-stoplight:
+        id: 4egrtyswm5usk
+      type: object
+      description: 書本查詢分頁物件
+      properties:
+        content:
+          type: array
+          x-stoplight:
+            id: vunzbuvbo3u79
+          items:
+            $ref: "#/components/schemas/CreateBookRsDto"
+            x-stoplight:
+              id: ifw0xcv8senh0
+        pageable:
+          $ref: "#/components/schemas/PageableDto"
+          x-stoplight:
+            id: p4bvbmdtbubxy
+    BookDto:
+      type: object
+      x-examples:
+        Example 1:
+          id: "9786263336803"
+          name: Clean Architecture 實作篇：在整潔的架構上弄髒你的手
+          price: 600
+          language: zh-Hant
+          inventory: 10
+          createdBy: "03423422"
+          createdTime: "2024-02-20T23:22:57.130305+08:00"
+          modifiedBy: "1203922"
+          modifiedTime: "2024-02-21T11:03:22.12932+08:00"
+      required:
+        - id
+        - name
+        - price
+        - language
+        - inventory
+        - createdBy
+        - createdTime
+        - modifiedBy
+        - modifiedTime
+      properties:
+        id:
+          type: string
+          description: 唯一識別碼
+        name:
+          type: string
+          description: 書名
+        price:
+          type: integer
+          description: 銷售價
+          minimum: 1
+        language:
+          $ref: "#/components/schemas/BookLanguageEnumDto"
+          description: 語言
+        inventory:
+          type: integer
+          description: 庫存
+          minimum: 1
+        createdBy:
+          type: string
+          description: 建立者
+        createdTime:
+          type: string
+          description: 建立時間
+          format: date-time
+        modifiedBy:
+          type: string
+          description: 更新者
+        modifiedTime:
+          type: string
+          description: 建立時間
+          format: date-time
+      examples:
+        - id: "9786263336803"
+          name: Clean Architecture 實作篇：在整潔的架構上弄髒你的手
+          price: 600
+          language: ZH-HANT
+          inventory: 10
+          createdBy: "03423422"
+          createdTime: "2024-02-20T23:22:57.130305+08:00"
+          modifiedBy: "1203922"
+          modifiedTime: "2024-02-21T11:03:22.12932+08:00"
+      description: 通用傳輸物件
+  securitySchemes:
+    oAuthSample:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: ""
+          tokenUrl: ""
+          refreshUrl: ""
+          scopes: {}
+  requestBodies:
+    CreateBookDto:
+      content:
+        application/json:
+          schema:
+            type: object
+            x-examples:
+              Example 1:
+                name: Clean Architecture 實作篇：在整潔的架構上弄髒你的手
+                price: 600
+                language: zh-Hant
+                inventory: 10
+                createdBy: "03423422"
+                createdTime: "2024-02-20T23:22:57.130305+08:00"
+                modifiedBy: "1203922"
+                modifiedTime: "2024-02-21T11:03:22.12932+08:00"
+            required:
+              - name
+              - price
+              - language
+              - inventory
+            properties:
+              name:
+                type: string
+                description: 書名
+              price:
+                type: integer
+                description: 銷售用價錢
+                format: int32
+                example: 666
+                minimum: 1
+              language:
+                type: string
+              inventory:
+                type: integer
+          examples:
+            Example 1:
+              value:
+                name: Clean Architecture 實作篇：在整潔的架構上弄髒你的手
+                price: 666
+                language: ZH-HANT
+                inventory: 10
+      description: 建立書本資料
+    PromotionBookDto:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              promotionPrice:
+                type: integer
+            x-examples:
+              Example 1:
+                promotionPrice: 300
+          examples:
+            Example 1:
+              value:
+                promotionPrice: 300
+      description: 書本促銷
+  parameters:
+    bookId:
+      name: bookId
+      in: path
+      required: true
+      schema:
+        type: string
+        example: "9786263336803"
+      description: 書本唯一識別碼
+tags:
+  - name: book

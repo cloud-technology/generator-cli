@@ -1,0 +1,12 @@
+cli:
+  build-tool: gradle
+  group-id: com.example
+  artifact-id: demo
+  name: demo
+  description: Demo project for Spring Boot
+  package-name: com.example.demo
+  runtime: cloud-run
+  openapiFilePath: /Users/samzhu/workspace/generator-cli/openapi.yaml
+  dbUrl: jdbc:postgresql://localhost:5432/mydatabase
+  dbUsername: myuser
+  dbPassword: secret

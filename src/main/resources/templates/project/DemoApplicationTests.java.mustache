@@ -1,0 +1,65 @@
+package com.example.demo;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.modulith.core.ApplicationModules;
+import org.springframework.modulith.docs.Documenter;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.testcontainers.junit.jupiter.Testcontainers;
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("ut")
+@Import(TestContainerConfiguration.class)
+@Testcontainers(disabledWithoutDocker = true)
+class DemoApplicationTests {
+
+  @Autowired
+  private TestRestTemplate testRestTemplate;
+
+  @Test
+  @DisplayName("createbook")
+  public void contextLoads() {
+    String url = "/api/v1/books";
+    HttpHeaders headers = new HttpHeaders();
+    headers.setContentType(MediaType.APPLICATION_JSON);
+    HttpEntity<String> request = new HttpEntity<>(
+      "{ \"name\": \"Clean Architecture 實作篇：在整潔的架構上弄髒你的手\", \"price\": 600, \"language\": \"ZH-HANT\", \"inventory\": 10 }",
+      headers
+    );
+
+    ResponseEntity<String> response = testRestTemplate.postForEntity(
+      url,
+      request,
+      String.class
+    );
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+  }
+
+  @Test
+  @DisplayName("verifiesModularStructure")
+  void verifiesModularStructure() {
+    var modules = ApplicationModules.of(DemoApplication.class);
+    System.out.println("modulesTest");
+    modules.forEach(System.out::println);
+
+    new Documenter(modules)
+      .writeModulesAsPlantUml()
+      .writeIndividualModulesAsPlantUml();
+
+    modules.verify();
+  }
+}

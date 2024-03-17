@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: {{name}}
+  main:
+    cloud-platform: kubernetes
+    banner-mode: off
+  cloud:
+    stream:
+      bindings:
+        demo-out:
+          destination: demo-events
+          content-type: application/json
+          binder: default-binder
+  liquibase:
+    enabled: true
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+        
+server:
+  shutdown: graceful
+  error:
+    include-message: always
+    include-binding-errors: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, mappings, prometheus
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  info:
+    git:
+      enabled: true
+      mode: simple
+  tracing:
+    sampling:
+      probability: 1.0
+
+logging:
+  level:
+    root: info
+    {{packageName}}: info

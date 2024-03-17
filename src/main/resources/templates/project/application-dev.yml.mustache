@@ -1,0 +1,54 @@
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.actuate.autoconfigure.metrics.export.stackdriver.StackdriverMetricsExportAutoConfiguration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/mydatabase
+    username: myuser
+    password: ${db.password}
+  main:
+    banner-mode: console
+  thymeleaf:
+    cache: false
+  cloud:
+    gcp:
+      core:
+        enabled: true
+      sql:
+        enabled: false
+      metrics:
+        enabled: false
+      trace:
+        enabled: false
+      logging:
+        enabled: false
+
+server:
+  shutdown: graceful
+  error:
+    include-message: always
+    include-binding-errors: always
+
+springdoc:
+  show-actuator: false # 是否要顯示 actuator 端點
+  api-docs:
+    enabled: true # Disabling the /v3/api-docs endpoint & page
+
+logging:
+  level:
+    root: info
+
+management:
+  server:
+    port: 8080
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  info:
+    git:
+      mode: full
+  appoptics:
+    metrics:
+      export:
+        enabled: false

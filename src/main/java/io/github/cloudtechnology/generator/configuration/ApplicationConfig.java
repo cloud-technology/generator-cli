@@ -18,12 +18,8 @@ public class ApplicationConfig {
 
         @Override
         public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
-            System.out.println("編譯執行");
             hints.resources()
-                    .registerPattern("db/**/")
                     .registerPattern("templates/project/*.mustache")
-                    // .registerPattern("templates/project/application.yml.mustache")
-                    // .registerPattern("templates/**/")
                     .registerPattern("static/**");
         }
     }

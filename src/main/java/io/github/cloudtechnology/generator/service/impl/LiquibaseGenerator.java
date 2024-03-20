@@ -1,5 +1,7 @@
 package io.github.cloudtechnology.generator.service.impl;
 
+import io.github.cloudtechnology.generator.service.SchemaVersioning;
+import io.github.cloudtechnology.generator.vo.SchemaVo;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
@@ -7,11 +9,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
-
-import org.springframework.stereotype.Component;
-
-import io.github.cloudtechnology.generator.service.SchemaVersioning;
-import io.github.cloudtechnology.generator.vo.SchemaVo;
 import liquibase.CatalogAndSchema;
 import liquibase.Liquibase;
 import liquibase.command.CommandScope;
@@ -31,6 +28,7 @@ import liquibase.structure.core.Sequence;
 import liquibase.structure.core.Table;
 import liquibase.structure.core.UniqueConstraint;
 import liquibase.structure.core.View;
+import org.springframework.stereotype.Component;
 
 /**
  * https://www.liquibase.com/blog/3-ways-to-run-liquibase
@@ -44,56 +42,74 @@ import liquibase.structure.core.View;
 @Component
 public class LiquibaseGenerator implements SchemaVersioning {
 
-    @Override
-    public void generate(SchemaVo schemaVo) throws Exception {
-        Connection connection = null;
-        String catalogName;
-        String schemaName;
+  @Override
+  public void generate(SchemaVo schemaVo) throws Exception {
+    Connection connection = null;
+    String catalogName;
+    String schemaName;
 
-        try {
+    try {
+      Class.forName("org.postgresql.Driver");
+      connection = DriverManager.getConnection(
+        schemaVo.dbUrl(),
+        schemaVo.dbUsername(),
+        schemaVo.dbPassword()
+      );
 
-            Class.forName("org.postgresql.Driver");
-            connection = DriverManager.getConnection(
-                schemaVo.dbUrl(), schemaVo.dbUsername(), schemaVo.dbPassword());
+      // database = new PostgresDatabase();
 
-            // database = new PostgresDatabase();
+      Database database = DatabaseFactory.getInstance()
+        .findCorrectDatabaseImplementation(new JdbcConnection(connection));
+      // Liquibase liquibase = new liquibase.Liquibase(
+      //         "",
+      //         new ClassLoaderResourceAccessor(),
+      //         database);
+      // liquibase.update(new Contexts(), new LabelExpression());
 
-            Database database = DatabaseFactory.getInstance()
-                    .findCorrectDatabaseImplementation(new JdbcConnection(connection));
-            // Liquibase liquibase = new liquibase.Liquibase(
-            //         "",
-            //         new ClassLoaderResourceAccessor(),
-            //         database);
-            // liquibase.update(new Contexts(), new LabelExpression());
+      // CatalogAndSchema catalogAndSchema = new CatalogAndSchema(catalogName,
+      // schemaName);
+      DiffToChangeLog changeLogWriter = new DiffToChangeLog(
+        new DiffOutputControl(false, false, true, null)
+      );
 
-            // CatalogAndSchema catalogAndSchema = new CatalogAndSchema(catalogName,
-            // schemaName);
-            DiffToChangeLog changeLogWriter = new DiffToChangeLog(new DiffOutputControl(false, false, true, null));
+      Path path = Paths.get(
+        schemaVo.projectTempPath() + "/src/main/resources/db/changelog/history"
+      );
+      Path pathCreate = Files.createDirectories(path);
 
-            Path path = Paths.get(schemaVo.projectTempPath() + "/src/main/resources/db/changelog/history");
-            Path pathCreate = Files.createDirectories(path);
+      CommandScope generateChangelogCommand = new CommandScope(
+        "generateChangeLog"
+      );
+      generateChangelogCommand.addArgumentValue("database", database);
+      generateChangelogCommand.addArgumentValue(
+        "changelogFile",
+        pathCreate.toAbsolutePath() + "/changelog-init.yaml"
+      );
+      generateChangelogCommand.execute();
 
-            CommandScope generateChangelogCommand = new CommandScope("generateChangeLog");
-            generateChangelogCommand.addArgumentValue("database", database);
-            generateChangelogCommand.addArgumentValue("changelogFile", pathCreate.toAbsolutePath() + "/changelog-init.yaml");
-            generateChangelogCommand.execute();
+      // liquibase.generateChangeLog(CatalogAndSchema.DEFAULT, changeLogWriter,
+      //         new PrintStream(new FileOutputStream(
+      //                 pathCreate.toAbsolutePath() + "/changelog-init.yaml")),
+      //         new YamlChangeLogSerializer(),
+      //         this.snapshotTypes());
 
-            // liquibase.generateChangeLog(CatalogAndSchema.DEFAULT, changeLogWriter,
-            //         new PrintStream(new FileOutputStream(
-            //                 pathCreate.toAbsolutePath() + "/changelog-init.yaml")),
-            //         new YamlChangeLogSerializer(),
-            //         this.snapshotTypes());
-
-            connection.close();
-        } catch (Exception e) {
-            throw e;
-        }
-
+      connection.close();
+    } catch (Exception e) {
+      throw e;
     }
+  }
 
-    private Class[] snapshotTypes() {
-        return new Class[] { UniqueConstraint.class, Sequence.class, Table.class, View.class, ForeignKey.class,
-                PrimaryKey.class, Index.class, Column.class, Data.class };
-    }
-
+  private Class[] snapshotTypes() {
+    return new Class[] {
+      UniqueConstraint.class,
+      Sequence.class,
+      Table.class,
+      View.class,
+      ForeignKey.class,
+      PrimaryKey.class,
+      Index.class,
+      Column.class,
+      Data.class,
+    };
+  }
 }

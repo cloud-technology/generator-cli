@@ -3,3 +3,4 @@ spring:
     name: generator-cli
   main:
     web-application-type: none
+

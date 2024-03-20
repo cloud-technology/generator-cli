@@ -8,8 +8,7 @@ import org.springframework.shell.command.annotation.CommandScan;
 @SpringBootApplication
 public class GeneratorCliApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(GeneratorCliApplication.class, args);
-	}
-
+  public static void main(String[] args) {
+    SpringApplication.run(GeneratorCliApplication.class, args);
+  }
 }

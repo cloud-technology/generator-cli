@@ -37,7 +37,18 @@ cd generator-cli
 ```bash
 sdk use java 17.0.10-librca
 ./gradlew --no-daemon clean build
-cp ./build/libs/generator-cli-0.0.1.jar .
+cp ./build/libs/generator-cli-0.0.1.jar ./dev-resources/test
+cd ./dev-resources/test
+java -jar ./generator-cli-0.0.1.jar generator
+```
+
+使用 native build
+``` bash
+sdk use java 21.0.2-graalce
+./gradlew --no-daemon clean nativeCompile
+cp ./build/native/nativeCompile/generator-cli ./dev-resources/test
+cd ./dev-resources/test
+./generator-cli generator
 ```
 
 ### 使用方法

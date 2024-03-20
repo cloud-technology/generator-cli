@@ -6,7 +6,11 @@ cli:
   description: Demo project for Spring Boot
   package-name: com.example.demo
   runtime: cloud-run
-  openapiFilePath: /Users/samzhu/workspace/generator-cli/openapi.yaml
+  openapiFilePath: /Users/samzhu/workspace/cloud-technology/generator-cli/dev-resources/test/openapi.yaml
   dbUrl: jdbc:postgresql://localhost:5432/mydatabase
   dbUsername: myuser
   dbPassword: secret
+
+logging:
+  level:
+    io.github.cloudtechnology.generator: debug

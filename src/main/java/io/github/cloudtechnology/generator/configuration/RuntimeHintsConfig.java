@@ -21,15 +21,22 @@ import org.springframework.aot.hint.TypeReference;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportRuntimeHints;
 
-// https://www.kabisa.nl/tech/using-jackson-builders-in-spring-boot-native
-// https://github.com/spring-projects/spring-authorization-server/issues/1380
-// https://github.com/OpenAPITools/openapi-generator/blob/master/modules/openapi-generator/src/main/resources/JavaSpring/model.mustache
-
+/**
+ * Configuration class to register runtime hints for reflection, resources, and serialization
+ * to support AOT (Ahead-of-Time) compilation in Spring applications.
+ * Ref:
+ * https://www.kabisa.nl/tech/using-jackson-builders-in-spring-boot-native
+ * https://github.com/spring-projects/spring-authorization-server/issues/1380
+ * https://github.com/OpenAPITools/openapi-generator/blob/master/modules/openapi-generator/src/main/resources/JavaSpring/model.mustache
+ */
 @Slf4j
 @ImportRuntimeHints(RuntimeHintsConfig.TemplateResourcesRegistrar.class)
 @Configuration
 public class RuntimeHintsConfig {
 
+  /**
+   * Registrar for template resources, Java classes, and other runtime hints.
+   */
   static class TemplateResourcesRegistrar implements RuntimeHintsRegistrar {
 
     Set<Class<?>> javaClasses = Set.of(
@@ -66,10 +73,115 @@ public class RuntimeHintsConfig {
       "liquibase.resource.PathHandlerFactory"
     );
 
+    /**
+     * Registers runtime hints for resources, classes, and a specific case for
+     * Caffeine cache.
+     *
+     * @param hints       the RuntimeHints instance to register the hints against.
+     * @param classLoader the ClassLoader to use for class name resolution.
+     */
     @Override
     public void registerHints(RuntimeHints hints, ClassLoader classLoader) {
-      this.registerStaticResources(hints);
-      // 處理 java.lang.ClassNotFoundException: com.github.benmanes.caffeine.cache.SSMSA
+      registerStaticResources(hints);
+      registerClasses(hints);
+      registerCaffeineSpecialCase(hints);
+    }
+
+    /**
+     * Registers patterns for static resources that should be available at runtime.
+     *
+     * @param hints the RuntimeHints instance to register the resources against.
+     */
+    private void registerStaticResources(RuntimeHints hints) {
+      hints
+        .resources()
+        .registerPattern("templates/**")
+        .registerPattern("static/**")
+        .registerPattern("JavaSpring/**");
+    }
+
+    /**
+     * Registers Java classes and custom class names for reflection and
+     * serialization.
+     *
+     * @param hints the RuntimeHints instance to register the classes against.
+     */
+    private void registerClasses(RuntimeHints hints) {
+      javaClasses.forEach(javaClass -> registerClass(hints, javaClass));
+      classNames.forEach(className -> registerClassByName(hints, className));
+    }
+
+    /**
+     * Helper method to register a Java class for reflection and attempts to
+     * register it for serialization if applicable.
+     * This method creates a TypeReference from the class object and delegates to
+     * {@link #registerClass(RuntimeHints, TypeReference)}.
+     *
+     * @param hints the RuntimeHints instance to register the class against.
+     * @param type  the class to be registered.
+     */
+    private void registerClass(RuntimeHints hints, Class<?> type) {
+      registerClass(hints, TypeReference.of(type));
+    }
+
+    /**
+     * Registers a class by its name for reflection and possible serialization.
+     *
+     * @param hints     the RuntimeHints instance to register the class against.
+     * @param className the name of the class to be registered.
+     */
+    private void registerClassByName(RuntimeHints hints, String className) {
+      registerClass(hints, TypeReference.of(className));
+    }
+
+    /**
+     * Registers a class for reflection and attempts to register it for
+     * serialization if applicable.
+     *
+     * @param hints         the RuntimeHints instance to register the class against.
+     * @param typeReference the TypeReference of the class to be registered.
+     */
+    private void registerClass(
+      RuntimeHints hints,
+      TypeReference typeReference
+    ) {
+      hints.reflection().registerType(typeReference, MemberCategory.values());
+      attemptSerializationRegistration(hints, typeReference);
+    }
+
+    /**
+     * Attempts to register a class for serialization if it is Serializable.
+     *
+     * @param hints         the RuntimeHints instance to register the serialization
+     *                      hint against.
+     * @param typeReference the TypeReference of the class to check for
+     *                      serialization capability.
+     */
+    private void attemptSerializationRegistration(
+      RuntimeHints hints,
+      TypeReference typeReference
+    ) {
+      try {
+        Class<?> clzz = Class.forName(typeReference.getName());
+        if (Serializable.class.isAssignableFrom(clzz)) {
+          hints.serialization().registerType(typeReference);
+        }
+      } catch (Throwable t) {
+        log.error(
+          "couldn't register serialization hint for {}:{}",
+          typeReference.getName(),
+          t.getMessage()
+        );
+      }
+    }
+
+    /**
+     * Handles a special registration case for the Caffeine cache.
+     *
+     * @param hints the RuntimeHints instance to register the Caffeine cache class
+     *              against.
+     */
+    private void registerCaffeineSpecialCase(RuntimeHints hints) {
       hints
         .reflection()
         .registerType(
@@ -86,65 +198,6 @@ public class RuntimeHintsConfig {
               ExecutableMode.INVOKE
             )
         );
-      javaClasses.forEach(type -> {
-        this.registerClass(hints, type);
-      });
-      classNames
-        .stream()
-        .forEach(packageName -> {
-          this.registerClass(hints, packageName);
-        });
-    }
-
-    /**
-     * 註冊靜態資源訪問提示。
-     *
-     * @param hints RuntimeHints實例用於註冊。
-     */
-    private void registerStaticResources(RuntimeHints hints) {
-      hints
-        .resources()
-        .registerPattern("templates/**")
-        .registerPattern("static/**")
-        .registerPattern("JavaSpring/**");
-    }
-
-    private void registerClass(RuntimeHints hints, String className) {
-      var memberCategories = MemberCategory.values();
-      var typeReference = TypeReference.of(className);
-      hints.reflection().registerType(typeReference, memberCategories);
-      try {
-        var clzz = Class.forName(typeReference.getName());
-        if (Serializable.class.isAssignableFrom(clzz)) {
-          hints.serialization().registerType(typeReference);
-        }
-      } catch (Throwable t) { //
-        log.error(
-          "couldn't register serialization hint for " +
-          typeReference.getName() +
-          ":" +
-          t.getMessage()
-        );
-      }
-    }
-
-    private void registerClass(RuntimeHints hints, Class<?> type) {
-      var memberCategories = MemberCategory.values();
-      var typeReference = TypeReference.of(type);
-      hints.reflection().registerType(typeReference, memberCategories);
-      try {
-        var clzz = Class.forName(typeReference.getName());
-        if (Serializable.class.isAssignableFrom(clzz)) {
-          hints.serialization().registerType(typeReference);
-        }
-      } catch (Throwable t) { //
-        log.error(
-          "couldn't register serialization hint for " +
-          typeReference.getName() +
-          ":" +
-          t.getMessage()
-        );
-      }
     }
   }
 }

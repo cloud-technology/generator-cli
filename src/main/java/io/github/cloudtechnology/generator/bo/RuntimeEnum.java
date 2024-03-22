@@ -1,8 +1,8 @@
 package io.github.cloudtechnology.generator.bo;
 
 public enum RuntimeEnum {
-  GKE("GKE"),
-  CLOUD_RUN("CLOUD_RUN");
+  KUBERNETES("KUBERNETES"),
+  CLOUD_RUN("CLOUDRUN");
 
   private String value;
 

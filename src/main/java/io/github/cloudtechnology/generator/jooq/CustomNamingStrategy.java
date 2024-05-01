@@ -24,6 +24,8 @@ public class CustomNamingStrategy extends DefaultGeneratorStrategy {
     if (name.startsWith("tb_")) {
       name = name.substring(3); // 移除"tb_"前綴
       name = toPascalCase(name) + "Entity"; // 轉換為PascalCase並添加"Entity"後綴
+    }else{
+      name = toPascalCase(name) + "Entity"; // 轉換為PascalCase並添加"Entity"後綴
     }
 
     return name;

@@ -204,9 +204,13 @@ jobs:
       - name: Reorganize files
         run: |
           mkdir -p combined_release
+          # Copy Intel artifacts
           cp release/${{ env.INTEL_ARTIFACT }}/${{ env.INTEL_ARTIFACT }}.zip combined_release/
-          cp release/sbom-artifacts/sbom.json combined_release/${{ env.INTEL_ARTIFACT }}-bom.json
-          cp release/sbom-artifacts/sbom-report.html combined_release/${{ env.INTEL_ARTIFACT }}-report.html
+          # Copy ARM artifacts
+          cp release/${{ env.ARM_ARTIFACT }}/${{ env.ARM_ARTIFACT }}.zip combined_release/
+          # Copy SBOM files (only one copy needed)
+          cp release/sbom-artifacts/sbom.json combined_release/sbom.json
+          cp release/sbom-artifacts/sbom-report.html combined_release/sbom-report.html
 
       # Create GitHub Release
       - name: Create Release
@@ -231,27 +235,21 @@ jobs:
             - Intel Mac (x86_64): ${{ env.INTEL_ARTIFACT }}.zip
             - ARM Mac (aarch64): ${{ env.ARM_ARTIFACT }}.zip
 
-            ## 系統需求
-            - JDK 17 或更高版本
-            - Gradle
-            - Docker（用於某些功能，例如 Testcontainers）
-
             ## SBOM 資訊
-            軟體物料清單 (SBOM) 檔案提供以下格式：
-            - JSON 格式原始 SBOM 資料
-            - HTML 報告（由 CycloneDX Sunshine 生成），包含視覺化的依賴關係、漏洞和授權資訊
+            軟體物料清單 (SBOM) 檔案：
+            - JSON 格式：sbom.json
+            - HTML 報告：sbom-report.html
 
             查看完整的[互動式 SBOM 報告](https://samzhu.github.io/generator-cli/sbom/)
 
             ## 建置資訊
             建置時間：${{ github.event.repository.updated_at }}
             提交版本：${{ github.sha }}
-          draft: false  # Set to true to create a draft release
-          prerelease: false  # Set to true to mark as pre-release
           files: |
             combined_release/${{ env.INTEL_ARTIFACT }}.zip
-            combined_release/${{ env.INTEL_ARTIFACT }}-bom.json
-            combined_release/${{ env.INTEL_ARTIFACT }}-report.html
+            combined_release/${{ env.ARM_ARTIFACT }}.zip
+            combined_release/sbom.json
+            combined_release/sbom-report.html
 
   # Job 3: Deploy GitHub Pages
   # This job depends on create-release

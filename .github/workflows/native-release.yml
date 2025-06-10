@@ -185,13 +185,10 @@ jobs:
       # Prepare GitHub Pages content
       - name: Prepare GitHub Pages content
         run: |
-          echo "Checkout website content"
-          git clone --depth 1 https://github.com/${{ github.repository }}.git tmp-repo
-          mkdir -p pages-content
-          cp -r tmp-repo/site/* pages-content/
+          echo "Create GitHub Pages content directory"
+          mkdir -p pages-content/sbom
           
           echo "Copy SBOM report"
-          mkdir -p pages-content/sbom
           cp release/sbom-artifacts/sbom-report.html pages-content/sbom/index.html
           cp release/sbom-artifacts/sbom.json pages-content/sbom/sbom.json
       

@@ -16,10 +16,10 @@ permissions:
 
 jobs:
   build-and-release: # Job 1: Build native executable
-    # Matrix strategy: build Intel and ARM versions simultaneously
+    # Matrix strategy: build Intel, ARM, and Linux versions simultaneously
     strategy:
       matrix:
-        arch: [intel, arm]  # Currently only Intel defined, can add more in the future
+        arch: [intel, arm, linux]  # 添加 linux 架構
         include:
           # Intel settings
           - arch: intel
@@ -33,6 +33,13 @@ jobs:
             runner: macos-latest  # Use macOS-latest (ARM, only 7GB RAM)
             target_platform: darwin-aarch64  # GraalVM target platform
             artifact_name: generator-cli-darwin-aarch64  # Artifact name matches target_platform
+            memory_options: ""
+            build_options: ""
+          # Linux settings
+          - arch: linux
+            runner: ubuntu-latest  # Use Ubuntu latest runner
+            target_platform: linux-x86_64  # GraalVM target platform
+            artifact_name: generator-cli-linux-x86_64  # Artifact name matches target_platform
             memory_options: ""
             build_options: ""
 
@@ -181,6 +188,7 @@ jobs:
           echo "RELEASE_NAME=Release v20250421.1" >> $GITHUB_ENV
           echo "INTEL_ARTIFACT=generator-cli-darwin-x86_64" >> $GITHUB_ENV
           echo "ARM_ARTIFACT=generator-cli-darwin-aarch64" >> $GITHUB_ENV
+          echo "LINUX_ARTIFACT=generator-cli-linux-x86_64" >> $GITHUB_ENV
       
       # Prepare GitHub Pages content
       - name: Prepare GitHub Pages content
@@ -208,6 +216,8 @@ jobs:
           cp release/${{ env.INTEL_ARTIFACT }}/${{ env.INTEL_ARTIFACT }}.zip combined_release/
           # Copy ARM artifacts
           cp release/${{ env.ARM_ARTIFACT }}/${{ env.ARM_ARTIFACT }}.zip combined_release/
+          # Copy Linux artifacts
+          cp release/${{ env.LINUX_ARTIFACT }}/${{ env.LINUX_ARTIFACT }}.zip combined_release/
           # Copy SBOM files (only one copy needed)
           cp release/sbom-artifacts/sbom.json combined_release/sbom.json
           cp release/sbom-artifacts/sbom-report.html combined_release/sbom-report.html
@@ -234,6 +244,7 @@ jobs:
             目前提供以下版本：
             - Intel Mac (x86_64): ${{ env.INTEL_ARTIFACT }}.zip
             - ARM Mac (aarch64): ${{ env.ARM_ARTIFACT }}.zip
+            - Linux (x86_64): ${{ env.LINUX_ARTIFACT }}.zip
 
             ## SBOM 資訊
             軟體物料清單 (SBOM) 檔案：
@@ -248,6 +259,7 @@ jobs:
           files: |
             combined_release/${{ env.INTEL_ARTIFACT }}.zip
             combined_release/${{ env.ARM_ARTIFACT }}.zip
+            combined_release/${{ env.LINUX_ARTIFACT }}.zip
             combined_release/sbom.json
             combined_release/sbom-report.html
 

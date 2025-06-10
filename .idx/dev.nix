@@ -16,9 +16,7 @@
     # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
     extensions = [
       "vscjava.vscode-java-pack"
-      "vmware.vscode-boot-dev-pack"
-      "redhat.fabric8-analytics"
-      "SonarSource.sonarlint-vscode"
+      "cweijan.vscode-database-client2"
     ];
 
     workspace = {

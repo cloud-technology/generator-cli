@@ -246,7 +246,8 @@ jobs:
             建置時間：${{ github.event.repository.updated_at }}
             提交版本：${{ github.sha }}
           files: |
-            combined_release/*.zip
+            combined_release/${{ env.INTEL_ARTIFACT }}.zip
+            combined_release/${{ env.ARM_ARTIFACT }}.zip
             combined_release/sbom.json
             combined_release/sbom-report.html
 

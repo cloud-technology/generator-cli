@@ -269,9 +269,12 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: site  # Directory containing static site content
+          name: pages-content  # 明確指定構件名稱
           # retention-days: 1  # Short retention to save space
 
       # Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: pages-content  # 使用相同的構件名稱

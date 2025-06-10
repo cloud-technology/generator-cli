@@ -38,7 +38,7 @@ curl -f -L -o generator-cli-linux-x86_64.zip "https://github.com/cloud-technolog
 # 解壓縮
 unzip generator-cli-linux-x86_64.zip
 
-# 確認安裝
+# 執行產生專案
 ./generator-cli-linux-x86_64 generator
 ```
 

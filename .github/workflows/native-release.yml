@@ -25,14 +25,14 @@ jobs:
           - arch: intel
             runner: macos-13  # Use macOS 13 (Intel) runner
             target_platform: darwin-x86_64  # GraalVM target platform
-            artifact_name: gcp-auditmate-mcp-server-darwin-x86_64  # Artifact name matches target_platform
+            artifact_name: generator-cli-darwin-x86_64  # Artifact name matches target_platform
             memory_options: ""
             build_options: ""
           # ARM settings
           - arch: arm
             runner: macos-latest  # Use macOS-latest (ARM, only 7GB RAM)
             target_platform: darwin-aarch64  # GraalVM target platform
-            artifact_name: gcp-auditmate-mcp-server-darwin-aarch64  # Artifact name matches target_platform
+            artifact_name: generator-cli-darwin-aarch64  # Artifact name matches target_platform
             memory_options: ""
             build_options: ""
 
@@ -78,22 +78,22 @@ jobs:
           JAVA_TOOL_OPTIONS: "${{ matrix.memory_options }} -Dnative-image.target-platform=${{ matrix.target_platform }} ${{ matrix.build_options }}"
 
       # Ensure the executable has execution permission
-      - name: Make MCP server executable
-        run: chmod +x build/native/nativeCompile/gcp-auditmate-mcp-server
+      - name: Make executable
+        run: chmod +x build/native/nativeCompile/generator-cli
 
       # Set version variables
       - name: Set version
         run: |
-          echo "VERSION=20250421.1" >> $GITHUB_ENV
-          echo "RELEASE_TAG=v20250421.1" >> $GITHUB_ENV
-          echo "RELEASE_NAME=Release v20250421.1" >> $GITHUB_ENV
+          echo "VERSION=20240421.1" >> $GITHUB_ENV
+          echo "RELEASE_TAG=v20240421.1" >> $GITHUB_ENV
+          echo "RELEASE_NAME=Release v20240421.1" >> $GITHUB_ENV
       
       # Prepare release files (keep only the zip archive)
       - name: Prepare release files
         run: |
           mkdir -p release
           echo "Copy and rename executable according to architecture"
-          cp build/native/nativeCompile/gcp-auditmate-mcp-server release/${{ matrix.artifact_name }}
+          cp build/native/nativeCompile/generator-cli release/${{ matrix.artifact_name }}
           cd release
           echo "Create zip archive containing the executable"
           zip -r ${{ matrix.artifact_name }}.zip ${{ matrix.artifact_name }}
@@ -179,8 +179,8 @@ jobs:
           echo "VERSION=20250421.1" >> $GITHUB_ENV
           echo "RELEASE_TAG=v20250421.1" >> $GITHUB_ENV
           echo "RELEASE_NAME=Release v20250421.1" >> $GITHUB_ENV
-          echo "INTEL_ARTIFACT=gcp-auditmate-mcp-server-darwin-x86_64" >> $GITHUB_ENV
-          echo "ARM_ARTIFACT=gcp-auditmate-mcp-server-darwin-aarch64" >> $GITHUB_ENV
+          echo "INTEL_ARTIFACT=generator-cli-darwin-x86_64" >> $GITHUB_ENV
+          echo "ARM_ARTIFACT=generator-cli-darwin-aarch64" >> $GITHUB_ENV
       
       # Prepare GitHub Pages content
       - name: Prepare GitHub Pages content

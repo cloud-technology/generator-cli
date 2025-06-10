@@ -1,7 +1,5 @@
 package io.github.cloudtechnology.generator.service.impl;
 
-import io.github.cloudtechnology.generator.service.RepositoryGenerator;
-import io.github.cloudtechnology.generator.vo.RepositoryVo;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -11,7 +9,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
-import lombok.extern.slf4j.Slf4j;
+
 import org.apache.commons.lang3.StringUtils;
 import org.jooq.codegen.GenerationTool;
 import org.jooq.meta.jaxb.Configuration;
@@ -22,6 +20,10 @@ import org.jooq.meta.jaxb.Jdbc;
 import org.jooq.meta.jaxb.Strategy;
 import org.jooq.meta.jaxb.Target;
 import org.springframework.stereotype.Component;
+
+import io.github.cloudtechnology.generator.service.RepositoryGenerator;
+import io.github.cloudtechnology.generator.vo.RepositoryVo;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * https://www.jooq.org/doc/3.19/manual-single-page/#codegen-programmatic
@@ -39,13 +41,26 @@ public class JooqGenerator implements RepositoryGenerator {
     Generate generate = new Generate();
     generate.setRecords(Boolean.FALSE);
     generate.setPojos(Boolean.TRUE);
+    generate.setPojosEqualsAndHashCode(Boolean.FALSE);
     generate.setPojosToString(Boolean.FALSE);
     generate.setJavaTimeTypes(Boolean.TRUE);
     generate.setJpaAnnotations(Boolean.TRUE);
-    generate.setJpaVersion("2.2");
+    generate.setJpaVersion("3.0");
     generate.withValidationAnnotations(Boolean.TRUE);
     generate.setSpringAnnotations(Boolean.TRUE);
     generate.setGlobalObjectReferences(Boolean.FALSE);
+    generate.setPojosAsJavaRecordClasses(Boolean.FALSE);
+    // 正確的 API 來禁用 default catalog 和 schema 檔案生成
+    generate.withDefaultCatalog(Boolean.FALSE);  // 禁用 DefaultCatalog.java
+    generate.withDefaultSchema(Boolean.FALSE);   // 禁用 DefaultSchema.java
+    
+    // 禁用空的 catalog 和 schema 檔案生成，避免產生 PublicEntity.java
+    generate.withEmptyCatalogs(Boolean.FALSE);   // 不生成空的 catalog 檔案
+    generate.withEmptySchemas(Boolean.FALSE);    // 不生成空的 schema 檔案，這會禁用 PublicEntity.java
+
+    String generatorName = "org.jooq.codegen.JavaGenerator";
+    // String generatorName = "io.github.cloudtechnology.generator.jooq.JooqJavaGenerator";
+
     Configuration configuration = new org.jooq.meta.jaxb.Configuration()
       // Configure the database connection here
       .withJdbc(
@@ -58,7 +73,7 @@ public class JooqGenerator implements RepositoryGenerator {
       .withGenerator(
         new Generator()
           .withName(
-            "io.github.cloudtechnology.generator.jooq.JooqJavaGenerator"
+            generatorName
           )
           .withDatabase(
             new Database()

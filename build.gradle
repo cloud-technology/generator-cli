@@ -29,7 +29,7 @@ ext {
 	set('springCloudVersion', "2023.0.0")
 	set('springShellVersion', "3.2.2")
 	set('openapiGeneratorVersion', "7.2.0") // https://search.maven.org/artifact/org.openapitools/openapi-generator
-	set('jooqVersion', "3.18.7") // https://search.maven.org/search?q=a:jooq-parent
+	set('jooqVersion', "3.20.4") // https://search.maven.org/search?q=a:jooq-parent
 	set('liquibaseCoreVersion', "4.26.0") // https://search.maven.org/artifact/org.liquibase/liquibase-core
 }
 

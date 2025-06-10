@@ -142,7 +142,7 @@ jobs:
         run: |
           ./gradlew cyclonedxBom
           mkdir -p sbom
-          cp build/reports/application.cdx.json sbom/sbom.json
+          cp build/reports/bom.json sbom/sbom.json
 
       # Generate SBOM HTML report using Sunshine
       - name: Generate SBOM HTML report using Sunshine

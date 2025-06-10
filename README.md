@@ -1,3 +1,10 @@
+<a href="https://studio.firebase.google.com/import?url=https%3A%2F%2Fgithub.com%2Fcloud-technology%2Fgenerator-cli">
+  <img
+    height="32"
+    alt="Open in Firebase Studio"
+    src="https://cdn.firebasestudio.dev/btn/open_light_32.svg">
+</a>
+
 # Spring Boot 專案產生工具
 
 這個開源專案提供了一個全面的程式碼產生工具，旨在簡化 Spring Boot 應用程序的建立過程。它無縫整合了 JOOQ、OpenAPI、JPA 以及 Liquibase，適合需要快速啟動並遵循最佳實踐的 Spring Boot 項目開發者。

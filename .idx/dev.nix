@@ -21,7 +21,6 @@
 
     workspace = {
       onCreate = {
-        setup = "gradle clean build";
         default.openFiles = [
           "README.md"
         ];

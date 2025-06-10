@@ -20,22 +20,6 @@
       "redhat.fabric8-analytics"
       "SonarSource.sonarlint-vscode"
     ];
-    
-    previews = {
-      enable = true;
-      previews = {
-        web = {
-          command = [
-            "gradle"
-            "bootRun"
-          ];
-          env = {
-            PORT = "8080";
-          };
-          manager = "web";
-        };
-      };
-    };
 
     workspace = {
       onCreate = {

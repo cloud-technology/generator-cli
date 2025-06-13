@@ -107,8 +107,13 @@ public class JooqGenerator implements RepositoryGenerator {
       "repositories"
     );
     log.debug("repositoriePath={}", repositoriePath);
+    
+    // 清理 JOOQ 自動生成的不需要的檔案
     Paths.get(repositoriePath + "/DefaultCatalog.java").toFile().delete();
     Paths.get(repositoriePath + "/Public.java").toFile().delete();
+    Paths.get(repositoriePath + "/PublicEntity.java").toFile().delete();
+    
+    log.info("🧹 已清理 JOOQ 自動生成的不需要檔案: DefaultCatalog.java, Public.java, PublicEntity.java");
 
     Path tablesPath = Paths.get(repositoriePath + "/tables");
     if (null != tablesPath && null != tablesPath.toFile().listFiles()) {

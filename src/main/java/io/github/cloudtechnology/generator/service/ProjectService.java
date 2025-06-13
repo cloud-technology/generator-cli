@@ -1,5 +1,8 @@
 package io.github.cloudtechnology.generator.service;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
@@ -88,7 +91,20 @@ public class ProjectService {
       springRepositoryGenerator.generate(repositoryVo);
       log.info("✅ Spring Data Repository 介面生成完成");
       
-      // 3. 生成 Liquibase schema versioning
+      // 3. 清理臨時的 repository-metadata.json 檔案
+      try {
+        Path metadataFilePath = repositoryVo.projectTempPath()
+                                          .resolve("src/main/java")
+                                          .resolve("repository-metadata.json");
+        if (Files.exists(metadataFilePath)) {
+          Files.delete(metadataFilePath);
+          log.info("🧹 已清理臨時檔案: repository-metadata.json");
+        }
+      } catch (Exception e) {
+        log.warn("⚠️ 清理臨時檔案時發生錯誤: {}", e.getMessage());
+      }
+      
+      // 4. 生成 Liquibase schema versioning
       SchemaVersioning schemaVersioning = applicationContext.getBean(
         "liquibaseGenerator",
         SchemaVersioning.class

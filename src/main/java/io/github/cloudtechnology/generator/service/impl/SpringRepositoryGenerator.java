@@ -6,235 +6,205 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import org.apache.commons.io.IOUtils;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samskivert.mustache.Mustache;
 import com.samskivert.mustache.Template;
 
+import io.github.cloudtechnology.generator.jooq.SimpleRepositoryGenerator.TableMetadata;
 import io.github.cloudtechnology.generator.service.RepositoryGenerator;
 import io.github.cloudtechnology.generator.vo.RepositoryVo;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * Spring Data Repository 生成器
- * 基於已生成的 JOOQ POJO 類別來創建對應的 Spring Data JPA Repository 介面
+ * 基於 JOOQ 收集的可靠表定義信息生成對應的 Spring Data JPA Repository 介面
  * 
  * 主要功能：
- * 1. 掃描已生成的 JOOQ POJO 檔案
- * 2. 從 @Id 註解中提取主鍵類型信息
- * 3. 生成對應的 Spring Data Repository 介面
- * 4. 避免與 JOOQ 清理機制的衝突
+ * 1. 讀取 JOOQ 生成的表元數據 JSON 文件
+ * 2. 基於可靠的 TableDefinition 信息生成 Repository 介面
+ * 3. 自動配置正確的包路徑和類型信息
+ * 4. 使用 Mustache 模板引擎生成乾淨的代碼
+ * 
+ * 設計原則：
+ * - 職責單一：專注於 Repository 文件生成
+ * - 數據可靠：使用 JOOQ TableDefinition 提供的準確信息
+ * - 錯誤處理：完善的異常處理和日誌記錄
+ * - 易於維護：清晰的方法分離和文檔說明
  * 
  * @author CloudTechnology Team
- * @version 1.0
+ * @version 2.0
  */
 @Slf4j
 @Service("springRepositoryGenerator")
 public class SpringRepositoryGenerator implements RepositoryGenerator {
     
+    // 常量定義
     private static final String REPOSITORY_TEMPLATE_PATH = "templates/repository/JpaRepository.mustache";
+    private static final String METADATA_FILE_NAME = "repository-metadata.json";
     private static final String REPOSITORY_SUFFIX = "Repository";
-    private static final String POJO_PACKAGE_SUFFIX = ".infrastructure.repositories.tables.pojos";
     private static final String REPOSITORY_PACKAGE_SUFFIX = ".infrastructure.repositories";
+    
+    // 模板變數名稱常量
+    private static final String TEMPLATE_VAR_PACKAGE_NAME = "packageName";
+    private static final String TEMPLATE_VAR_CLASS_NAME = "className";
+    private static final String TEMPLATE_VAR_POJO_CLASS_NAME = "pojoClassName";
+    private static final String TEMPLATE_VAR_PRIMARY_KEY_TYPE = "primaryKeyType";
     
     @Override
     public void generate(RepositoryVo repositoryVo) throws Exception {
         log.info("🚀 開始生成 Spring Data Repository 介面");
         
-        // 1. 掃描已生成的 POJO 檔案
-        List<PojoInfo> pojoInfos = scanGeneratedPojoFiles(repositoryVo);
+        // 1. 讀取 JOOQ 生成的表元數據
+        List<TableMetadata> tableMetadataList = loadTableMetadata(repositoryVo);
         
-        if (pojoInfos.isEmpty()) {
-            log.warn("⚠️ 沒有找到任何 POJO 檔案，跳過 Repository 生成");
+        if (tableMetadataList.isEmpty()) {
+            log.warn("⚠️ 沒有找到任何表元數據，跳過 Repository 生成");
             return;
         }
         
-        log.info("📋 找到 {} 個 POJO 類別，開始生成對應的 Repository", pojoInfos.size());
+        log.info("📋 找到 {} 個表的元數據，開始生成對應的 Repository", tableMetadataList.size());
         
-        // 2. 為每個 POJO 生成對應的 Repository
-        for (PojoInfo pojoInfo : pojoInfos) {
+        // 2. 為每個表生成對應的 Repository
+        int successCount = 0;
+        int failCount = 0;
+        
+        for (TableMetadata metadata : tableMetadataList) {
             try {
-                generateRepositoryForPojo(repositoryVo, pojoInfo);
-                log.info("✅ 成功生成 Repository: {}Repository", pojoInfo.getClassName());
+                generateRepositoryForTable(repositoryVo, metadata);
+                successCount++;
+                log.info("✅ 成功生成 Repository: {}Repository", metadata.getPojoClassName());
             } catch (Exception e) {
-                log.error("❌ 生成 {} Repository 時發生錯誤", pojoInfo.getClassName(), e);
+                failCount++;
+                log.error("❌ 生成 {} Repository 時發生錯誤", metadata.getPojoClassName(), e);
             }
         }
         
-        log.info("🎉 Spring Data Repository 介面生成完成！總共生成 {} 個 Repository", pojoInfos.size());
+        log.info("🎉 Repository 介面生成完成！成功: {}, 失敗: {}", successCount, failCount);
     }
     
     /**
-     * 掃描已生成的 POJO 檔案
+     * 載入 JOOQ 生成的表元數據
+     * 從 JSON 文件中讀取可靠的表定義信息
      * 
      * @param repositoryVo Repository 配置信息
-     * @return POJO 信息列表
+     * @return 表元數據列表
      * @throws IOException 檔案讀取異常
      */
-    private List<PojoInfo> scanGeneratedPojoFiles(RepositoryVo repositoryVo) throws IOException {
-        List<PojoInfo> pojoInfos = new ArrayList<>();
+    private List<TableMetadata> loadTableMetadata(RepositoryVo repositoryVo) throws IOException {
+        // 構建元數據文件路徑
+        Path metadataFilePath = repositoryVo.projectTempPath()
+                                          .resolve("src/main/java")
+                                          .resolve(METADATA_FILE_NAME);
         
-        // 構建 POJO 檔案路徑
-        String basePackage = repositoryVo.packageName();
-        String pojoPackage = basePackage + POJO_PACKAGE_SUFFIX;
-        String packagePath = pojoPackage.replace('.', '/');
-        Path pojoDirectory = repositoryVo.projectTempPath().resolve("src/main/java").resolve(packagePath);
+        log.info("🔍 讀取表元數據文件: {}", metadataFilePath.toAbsolutePath());
         
-        log.info("🔍 掃描 POJO 目錄: {}", pojoDirectory.toAbsolutePath());
-        
-        if (!Files.exists(pojoDirectory)) {
-            log.warn("⚠️ POJO 目錄不存在: {}", pojoDirectory);
-            return pojoInfos;
+        if (!Files.exists(metadataFilePath)) {
+            log.warn("⚠️ 表元數據文件不存在: {}", metadataFilePath);
+            throw new IOException("找不到表元數據文件: " + metadataFilePath);
         }
         
-        // 掃描所有 .java 檔案，但排除 Entity、Repository 和其他非 POJO 文件
-        try (Stream<Path> paths = Files.walk(pojoDirectory)) {
-            paths.filter(path -> path.toString().endsWith(".java"))
-                 .filter(path -> !path.getFileName().toString().equals("package-info.java"))
-                 .filter(path -> !path.getFileName().toString().endsWith("Entity.java"))
-                 .filter(path -> !path.getFileName().toString().endsWith("Repository.java"))
-                 .filter(path -> !path.getFileName().toString().contains("DefaultCatalog"))
-                 .filter(path -> !path.getFileName().toString().contains("Public"))
-                 .forEach(path -> {
-                     try {
-                         PojoInfo pojoInfo = analyzePojoFile(path, pojoPackage);
-                         if (pojoInfo != null) {
-                             pojoInfos.add(pojoInfo);
-                             log.debug("📄 分析 POJO: {} (主鍵類型: {})", pojoInfo.getClassName(), pojoInfo.getPrimaryKeyType());
-                         }
-                     } catch (Exception e) {
-                         log.warn("⚠️ 分析 POJO 檔案失敗: {}", path, e);
-                     }
-                 });
+        try {
+            // 讀取 JSON 文件內容
+            String jsonContent = Files.readString(metadataFilePath, StandardCharsets.UTF_8);
+            
+            // 解析為 TableMetadata 對象列表
+            ObjectMapper objectMapper = new ObjectMapper();
+            List<TableMetadata> tableMetadataList = objectMapper.readValue(
+                jsonContent, 
+                new TypeReference<List<TableMetadata>>() {}
+            );
+            
+            log.info("✅ 成功載入 {} 個表的元數據", tableMetadataList.size());
+            
+            // 記錄詳細信息用於調試
+            for (TableMetadata metadata : tableMetadataList) {
+                log.debug("📊 表元數據: {}", metadata);
+            }
+            
+            return tableMetadataList;
+            
+        } catch (Exception e) {
+            log.error("❌ 解析表元數據文件時發生錯誤: {}", metadataFilePath, e);
+            throw new IOException("解析表元數據文件失敗", e);
         }
-        
-        return pojoInfos;
     }
     
     /**
-     * 分析 POJO 檔案，提取類名和主鍵類型
-     * 
-     * @param pojoFilePath POJO 檔案路徑
-     * @param packageName  包名
-     * @return POJO 信息，如果無法解析則返回 null
-     * @throws IOException 檔案讀取異常
-     */
-    private PojoInfo analyzePojoFile(Path pojoFilePath, String packageName) throws IOException {
-        String content = Files.readString(pojoFilePath, StandardCharsets.UTF_8);
-        
-        // 提取類名
-        String className = extractClassName(pojoFilePath.getFileName().toString());
-        if (className == null) {
-            return null;
-        }
-        
-        // 提取主鍵類型（從 @Id 註解的欄位）
-        String primaryKeyType = extractPrimaryKeyType(content);
-        if (primaryKeyType == null) {
-            log.debug("⚠️ POJO {} 沒有找到 @Id 註解，跳過 Repository 生成", className);
-            return null;
-        }
-        
-        return new PojoInfo(className, primaryKeyType, packageName);
-    }
-    
-    /**
-     * 從檔案名提取類名
-     */
-    private String extractClassName(String fileName) {
-        if (fileName.endsWith(".java")) {
-            return fileName.substring(0, fileName.length() - 5);
-        }
-        return null;
-    }
-    
-    /**
-     * 從 POJO 內容中提取主鍵類型
-     * 查找 @Id 註解修飾的 getter 方法，並從中提取回傳類型
-     * 
-     * @param content POJO 檔案內容
-     * @return 主鍵類型，如果找不到則返回 null
-     */
-    private String extractPrimaryKeyType(String content) {
-        // 匹配 @Id 註解後的 getter 方法
-        // 支援多行格式，例如：
-        // @Id
-        // @Column(...)
-        // public String getId() {
-        Pattern idPattern = Pattern.compile(
-            "@Id\\s*(?:@[^\\n]*\\n\\s*)*\\s*public\\s+([A-Za-z][A-Za-z0-9_.<>]*)\\s+get\\w+\\s*\\(\\s*\\)", 
-            Pattern.MULTILINE | Pattern.DOTALL
-        );
-        
-        Matcher matcher = idPattern.matcher(content);
-        if (matcher.find()) {
-            String fullType = matcher.group(1);
-            return simplifyTypeName(fullType);
-        }
-        
-        return null;
-    }
-    
-    /**
-     * 簡化類型名稱
-     * java.lang.String -> String
-     * java.lang.Long -> Long
-     */
-    private String simplifyTypeName(String fullTypeName) {
-        if (fullTypeName == null || fullTypeName.isEmpty()) {
-            return fullTypeName;
-        }
-        
-        // 處理泛型類型
-        if (fullTypeName.contains("<")) {
-            return fullTypeName;
-        }
-        
-        // 獲取最後一個點號後的類名
-        int lastDotIndex = fullTypeName.lastIndexOf('.');
-        if (lastDotIndex > 0 && lastDotIndex < fullTypeName.length() - 1) {
-            return fullTypeName.substring(lastDotIndex + 1);
-        }
-        
-        return fullTypeName;
-    }
-    
-    /**
-     * 為單個 POJO 生成對應的 Repository
+     * 為單個表生成對應的 Repository 介面
      * 
      * @param repositoryVo Repository 配置信息
-     * @param pojoInfo     POJO 信息
+     * @param metadata     表元數據信息
      * @throws IOException 檔案操作異常
      */
-    private void generateRepositoryForPojo(RepositoryVo repositoryVo, PojoInfo pojoInfo) throws IOException {
+    private void generateRepositoryForTable(RepositoryVo repositoryVo, TableMetadata metadata) throws IOException {
+        log.debug("📝 開始生成 Repository: {}", metadata.getPojoClassName());
+        
         // 準備模板變數
-        String repositoryPackage = repositoryVo.packageName() + REPOSITORY_PACKAGE_SUFFIX;
-        String repositoryClassName = pojoInfo.getClassName() + REPOSITORY_SUFFIX;
+        RepositoryInfo repositoryInfo = buildRepositoryInfo(repositoryVo, metadata);
+        Map<String, Object> templateVariables = createTemplateVariables(repositoryInfo, metadata);
         
-        Map<String, Object> templateVariables = new HashMap<>();
-        templateVariables.put("packageName", repositoryPackage);
-        templateVariables.put("className", repositoryClassName);
-        templateVariables.put("pojoClassName", pojoInfo.getClassName());
-        templateVariables.put("primaryKeyType", pojoInfo.getPrimaryKeyType());
-        
-        // 生成內容
+        // 生成 Repository 內容
         String repositoryContent = generateRepositoryContent(templateVariables);
         
-        // 寫入檔案
-        writeRepositoryFile(repositoryVo, repositoryClassName, repositoryContent, repositoryPackage);
+        // 寫入 Repository 檔案
+        writeRepositoryFile(repositoryVo, repositoryInfo, repositoryContent);
+        
+        log.debug("✅ Repository 檔案生成完成: {}", repositoryInfo.getClassName());
+    }
+    
+    /**
+     * 構建 Repository 相關信息
+     * 計算 Repository 類別名稱、包名等信息
+     * 
+     * @param repositoryVo Repository 配置信息
+     * @param metadata     表元數據信息
+     * @return Repository 信息對象
+     */
+    private RepositoryInfo buildRepositoryInfo(RepositoryVo repositoryVo, TableMetadata metadata) {
+        String repositoryClassName = metadata.getPojoClassName() + REPOSITORY_SUFFIX;
+        String repositoryPackageName = repositoryVo.packageName() + REPOSITORY_PACKAGE_SUFFIX;
+        
+        return new RepositoryInfo(repositoryClassName, repositoryPackageName);
+    }
+    
+    /**
+     * 創建模板變數 Map
+     * 準備 Mustache 模板所需的所有變數
+     * 
+     * @param repositoryInfo Repository 信息
+     * @param metadata       表元數據信息
+     * @return 模板變數 Map
+     */
+    private Map<String, Object> createTemplateVariables(RepositoryInfo repositoryInfo, TableMetadata metadata) {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put(TEMPLATE_VAR_PACKAGE_NAME, repositoryInfo.getPackageName());
+        variables.put(TEMPLATE_VAR_CLASS_NAME, repositoryInfo.getClassName());
+        variables.put(TEMPLATE_VAR_POJO_CLASS_NAME, metadata.getPojoClassName());
+        variables.put(TEMPLATE_VAR_PRIMARY_KEY_TYPE, metadata.getPrimaryKeyType());
+        
+        // 計算 POJO 的完整 import 路徑
+        String pojoImportPath = metadata.getPojoPackageName() + "." + metadata.getPojoClassName();
+        variables.put("pojoImportPath", pojoImportPath);
+        
+        log.debug("🔧 模板變數: {}", variables);
+        
+        return variables;
     }
     
     /**
      * 使用模板生成 Repository 內容
+     * 
+     * @param templateVariables 模板變數
+     * @return 生成的 Repository 程式碼內容
+     * @throws IOException 模板處理異常
      */
     private String generateRepositoryContent(Map<String, Object> templateVariables) throws IOException {
         String templateContent = loadTemplateContent(REPOSITORY_TEMPLATE_PATH);
@@ -244,6 +214,10 @@ public class SpringRepositoryGenerator implements RepositoryGenerator {
     
     /**
      * 載入模板檔案內容
+     * 
+     * @param templatePath 模板檔案路徑
+     * @return 模板內容字串
+     * @throws IOException 檔案讀取異常
      */
     private String loadTemplateContent(String templatePath) throws IOException {
         try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream(templatePath)) {
@@ -256,16 +230,28 @@ public class SpringRepositoryGenerator implements RepositoryGenerator {
     
     /**
      * 寫入 Repository 檔案
+     * 
+     * @param repositoryVo   Repository 配置信息
+     * @param repositoryInfo Repository 信息
+     * @param content        Repository 檔案內容
+     * @throws IOException 檔案寫入異常
      */
-    private void writeRepositoryFile(RepositoryVo repositoryVo, String repositoryClassName, 
-                                   String content, String repositoryPackage) throws IOException {
+    private void writeRepositoryFile(RepositoryVo repositoryVo, RepositoryInfo repositoryInfo, 
+                                   String content) throws IOException {
         // 構建檔案路徑
-        String packagePath = repositoryPackage.replace('.', '/');
-        Path repositoryDir = repositoryVo.projectTempPath().resolve("src/main/java").resolve(packagePath);
-        Path repositoryFilePath = repositoryDir.resolve(repositoryClassName + ".java");
+        String packagePath = repositoryInfo.getPackageName().replace('.', '/');
+        Path repositoryDir = repositoryVo.projectTempPath()
+                                       .resolve("src/main/java")
+                                       .resolve(packagePath);
+        Path repositoryFilePath = repositoryDir.resolve(repositoryInfo.getClassName() + ".java");
+        
+        log.debug("📂 Repository 檔案路徑: {}", repositoryFilePath.toAbsolutePath());
         
         // 確保目錄存在
-        Files.createDirectories(repositoryDir);
+        if (!Files.exists(repositoryDir)) {
+            log.debug("📁 創建目錄: {}", repositoryDir);
+            Files.createDirectories(repositoryDir);
+        }
         
         // 寫入檔案
         Files.writeString(
@@ -277,20 +263,32 @@ public class SpringRepositoryGenerator implements RepositoryGenerator {
             StandardOpenOption.WRITE
         );
         
-        log.debug("📝 Repository 檔案已寫入: {}", repositoryFilePath.toAbsolutePath());
+        // 驗證檔案是否成功寫入
+        if (Files.exists(repositoryFilePath)) {
+            long fileSize = Files.size(repositoryFilePath);
+            log.debug("📝 Repository 檔案已寫入: {} ({} bytes)", 
+                     repositoryFilePath.toAbsolutePath(), fileSize);
+        } else {
+            throw new IOException("Repository 檔案寫入失敗: " + repositoryFilePath);
+        }
     }
     
     /**
-     * POJO 信息封裝類別
+     * Repository 信息封裝類別
+     * 用於儲存 Repository 的基本信息
      */
-    private static class PojoInfo {
+    private static class RepositoryInfo {
         private final String className;
-        private final String primaryKeyType;
         private final String packageName;
         
-        public PojoInfo(String className, String primaryKeyType, String packageName) {
+        /**
+         * 建構子
+         * 
+         * @param className   Repository 類別名稱
+         * @param packageName Repository 包名
+         */
+        public RepositoryInfo(String className, String packageName) {
             this.className = className;
-            this.primaryKeyType = primaryKeyType;
             this.packageName = packageName;
         }
         
@@ -298,12 +296,13 @@ public class SpringRepositoryGenerator implements RepositoryGenerator {
             return className;
         }
         
-        public String getPrimaryKeyType() {
-            return primaryKeyType;
-        }
-        
         public String getPackageName() {
             return packageName;
+        }
+        
+        @Override
+        public String toString() {
+            return String.format("RepositoryInfo{類別名稱='%s', 包名='%s'}", className, packageName);
         }
     }
 } 

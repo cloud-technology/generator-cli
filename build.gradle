@@ -78,12 +78,16 @@ graalvmNative {
 	}
 	binaries {
 		main {
-			// 簡化的 JOOQ 配置
+			// 完整的 JOOQ 編譯時初始化配置
 			buildArgs.addAll([
+				'--initialize-at-build-time=org.jooq.SQLDialect',
 				'--initialize-at-build-time=org.jooq.impl.SQLDataType',
 				'--initialize-at-build-time=org.jooq.impl.DefaultDataType',
 				'--initialize-at-build-time=org.jooq.impl.BuiltInDataType',
 				'--initialize-at-build-time=org.jooq.impl.DefaultBinding',
+				'--initialize-at-build-time=org.jooq.impl.AbstractDataType',
+				'--initialize-at-build-time=org.jooq.impl.ArrayDataType',
+				'--initialize-at-build-time=org.jooq.impl.DefaultDSLContext',
 				'--initialize-at-build-time=org.postgresql.Driver',
 				'--allow-incomplete-classpath',
 				'-H:+ReportExceptionStackTraces'

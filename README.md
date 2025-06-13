@@ -81,20 +81,21 @@ cd ./dev-resources/test
 
 ## 使用方法
 
-執行時準備資訊選擇或填寫
+產生器問你幾個關鍵資訊, 填寫後就會開始生成專案
 
 ``` bash
-build-tool: gradle
-group-id: com.example
-artifact-id: demo
-name: demo
-description: Demo project for Spring Boot
-package-name: com.example.demo
-runtime: cloud-run
-openapiFilePath: /path/to/your/openapi.yaml
-dbUrl: jdbc:postgresql://localhost:5432/mydatabase
-dbUsername: myuser
-dbPassword: secret
+shell:>generator 
+? Please choose a build tool GRADLE
+? Please enter group id com.example
+? Please enter artifact id demo
+? Please enter project name demo
+? Please enter project description Demo project for Spring Boot
+? Please enter package name com.example.demo
+? Please enter OpenAPI file path /Users/samzhu/workspace/test/openapi.yaml
+? Please enter database URL jdbc:postgresql://localhost:5432/mydatabase
+? Please enter database username myuser
+? Please enter database password ******
+? Please choose a runtime environment CLOUDRUN
 ```
 
 ## 項目結構

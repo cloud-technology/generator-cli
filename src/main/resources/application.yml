@@ -4,3 +4,6 @@ spring:
   main:
     web-application-type: none
 
+logging:
+  level:
+    io.github.cloudtechnology.generator: DEBUG

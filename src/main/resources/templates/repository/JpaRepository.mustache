@@ -1,33 +1,32 @@
 package {{packageName}};
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.rest.core.annotation.RepositoryRestResource;
-import org.springframework.data.rest.core.annotation.RestResource;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.stereotype.Repository;
 
-import {{packageName}}.tables.pojos.{{className}};
-
-@RepositoryRestResource
-public interface {{className}}Repository extends JpaRepository<{{className}}, {{primaryKeyType}}> {
-
-    // Prevents GET /object/:id
-    @Override
-    @RestResource(exported = true)
-    {{className}} getReferenceById({{primaryKeyType}} id);
-
-    // Prevents GET /object
-    @Override
-    @RestResource(exported = true)
-    Page<{{className}}> findAll(Pageable pageable);
-
-    // Prevents POST /object and PATCH /object/:id
-    @Override
-    @RestResource(exported = true)
-    {{className}} save({{className}} o);
-
-    // Prevents DELETE /object/:id
-    @Override
-    @RestResource(exported = true)
-    void delete({{className}} o);
+/**
+ * {{pojoClassName}} 資料存取層介面
+ * 提供標準的 CRUD 操作和複雜查詢功能
+ * 
+ * 繼承 JpaRepository 提供基本的 CRUD 操作
+ * 繼承 JpaSpecificationExecutor 提供動態查詢功能
+ * 
+ * @author 系統自動生成
+ */
+@Repository
+public interface {{className}} extends JpaRepository<{{pojoClassName}}, {{primaryKeyType}}>, 
+                                                JpaSpecificationExecutor<{{pojoClassName}}> {
+    
+    // 標準的 JpaRepository 已提供以下基本操作：
+    // - save(entity): 儲存或更新實體
+    // - findById(id): 根據 ID 查詢實體
+    // - findAll(): 查詢所有實體
+    // - deleteById(id): 根據 ID 刪除實體
+    // - count(): 統計實體數量
+    // - existsById(id): 檢查實體是否存在
+    
+    // 可在此處添加自定義查詢方法
+    // 例如：
+    // List<{{pojoClassName}}> findByFieldName(String fieldName);
+    // Optional<{{pojoClassName}}> findByUniqueField(String uniqueField);
 }

@@ -20,15 +20,23 @@ public class CustomNamingStrategy extends DefaultGeneratorStrategy {
   public String getJavaClassName(Definition definition, Mode mode) {
     String name = definition.getName(); // 從定義中獲取原始名稱
 
-    // 自定義轉換邏輯：如果表名以"tb_"開頭，則去除此前綴並在結尾添加"Entity"
-    if (name.startsWith("tb_")) {
-      name = name.substring(3); // 移除"tb_"前綴
-      name = toPascalCase(name) + "Entity"; // 轉換為PascalCase並添加"Entity"後綴
-    }else{
-      name = toPascalCase(name) + "Entity"; // 轉換為PascalCase並添加"Entity"後綴
+    // 根據不同的模式應用不同的命名規則
+    if (mode == Mode.POJO) {
+      // 對於 POJO 模式，使用標準的 PascalCase 命名，不添加 Entity 後綴
+      if (name.startsWith("tb_")) {
+        name = name.substring(3); // 移除"tb_"前綴
+      }
+      return toPascalCase(name);
+    } else {
+      // 對於其他模式（如 DEFAULT, RECORD 等），添加 Entity 後綴
+      if (name.startsWith("tb_")) {
+        name = name.substring(3); // 移除"tb_"前綴
+        name = toPascalCase(name) + "Entity"; // 轉換為PascalCase並添加"Entity"後綴
+      } else {
+        name = toPascalCase(name) + "Entity"; // 轉換為PascalCase並添加"Entity"後綴
+      }
+      return name;
     }
-
-    return name;
   }
 
   /**

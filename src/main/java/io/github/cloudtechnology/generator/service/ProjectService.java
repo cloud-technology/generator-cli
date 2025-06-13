@@ -1,5 +1,10 @@
 package io.github.cloudtechnology.generator.service;
 
+import org.apache.commons.lang3.ObjectUtils;
+import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
 import io.github.cloudtechnology.generator.command.CreateProjectCommand;
 import io.github.cloudtechnology.generator.service.impl.GradleProjectGenerator;
 import io.github.cloudtechnology.generator.vo.ApiVo;
@@ -8,10 +13,6 @@ import io.github.cloudtechnology.generator.vo.RepositoryVo;
 import io.github.cloudtechnology.generator.vo.SchemaVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ObjectUtils;
-import org.springframework.context.ApplicationContext;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 @Slf4j
 @Service
@@ -64,7 +65,8 @@ public class ProjectService {
       StringUtils.hasText(createProjectCommand.getDbUsername()) &&
       StringUtils.hasText(createProjectCommand.getDbPassword())
     ) {
-      RepositoryGenerator repositoryGenerator = applicationContext.getBean(
+      // 1. 先生成 JOOQ 標準類別（POJOs, Tables, Records）
+      RepositoryGenerator jooqGenerator = applicationContext.getBean(
         "jooqGenerator",
         RepositoryGenerator.class
       );
@@ -75,8 +77,18 @@ public class ProjectService {
         createProjectCommand.getDbUsername(),
         createProjectCommand.getDbPassword()
       );
-      repositoryGenerator.generate(repositoryVo);
-      //
+      jooqGenerator.generate(repositoryVo);
+      
+      // 2. JOOQ 完成後，獨立生成 Repository 介面
+      log.info("🔄 JOOQ 生成完成，開始生成 Spring Data Repository 介面...");
+      RepositoryGenerator springRepositoryGenerator = applicationContext.getBean(
+        "springRepositoryGenerator", 
+        RepositoryGenerator.class
+      );
+      springRepositoryGenerator.generate(repositoryVo);
+      log.info("✅ Spring Data Repository 介面生成完成");
+      
+      // 3. 生成 Liquibase schema versioning
       SchemaVersioning schemaVersioning = applicationContext.getBean(
         "liquibaseGenerator",
         SchemaVersioning.class

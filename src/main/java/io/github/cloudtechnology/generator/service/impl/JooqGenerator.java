@@ -1,16 +1,10 @@
 package io.github.cloudtechnology.generator.service.impl;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 
-import org.apache.commons.lang3.StringUtils;
 import org.jooq.codegen.GenerationTool;
 import org.jooq.meta.jaxb.Configuration;
 import org.jooq.meta.jaxb.Database;
@@ -50,6 +44,7 @@ public class JooqGenerator implements RepositoryGenerator {
     generate.setSpringAnnotations(Boolean.TRUE);
     generate.setGlobalObjectReferences(Boolean.FALSE);
     generate.setPojosAsJavaRecordClasses(Boolean.FALSE);
+    
     // 正確的 API 來禁用 default catalog 和 schema 檔案生成
     generate.withDefaultCatalog(Boolean.FALSE);  // 禁用 DefaultCatalog.java
     generate.withDefaultSchema(Boolean.FALSE);   // 禁用 DefaultSchema.java
@@ -58,8 +53,8 @@ public class JooqGenerator implements RepositoryGenerator {
     generate.withEmptyCatalogs(Boolean.FALSE);   // 不生成空的 catalog 檔案
     generate.withEmptySchemas(Boolean.FALSE);    // 不生成空的 schema 檔案，這會禁用 PublicEntity.java
 
-    String generatorName = "org.jooq.codegen.JavaGenerator";
-    // String generatorName = "io.github.cloudtechnology.generator.jooq.JooqJavaGenerator";
+    // 🎯 使用我們的自定義生成器來產生簡潔的 Repository
+    String generatorName = "io.github.cloudtechnology.generator.jooq.SimpleRepositoryGenerator";
 
     Configuration configuration = new org.jooq.meta.jaxb.Configuration()
       // Configure the database connection here
@@ -121,86 +116,5 @@ public class JooqGenerator implements RepositoryGenerator {
         .filter(File::isFile)
         .forEach(File::delete);
     }
-
-    Path pojosPath = Path.of(repositoriePath.toString(), "tables", "pojos");
-
-    // this.convertJakartaToJavax(pojosPath);
-
-    Path repositoryTempPath = Path.of(
-      repositoryVo.projectTempPath().toString(),
-      "RepositoryTemp"
-    );
-
-    File[] files = repositoryTempPath.toFile().listFiles();
-    if (null != files) {
-      for (File file : files) {
-        if (file.isFile()) {
-          log.debug(
-            "move to {}",
-            Path.of(repositoriePath.toString(), file.getName())
-          );
-          Files.move(
-            file.toPath(),
-            Path.of(repositoriePath.toString(), file.getName()),
-            StandardCopyOption.REPLACE_EXISTING
-          );
-        }
-      }
-    }
   }
-
-  private void convertJakartaToJavax(Path pojosPath) throws IOException {
-    File[] files = pojosPath.toFile().listFiles();
-    if (files != null) {
-      for (File file : files) {
-        String content = Files.readString(
-          file.toPath(),
-          StandardCharsets.UTF_8
-        );
-        String replaceContent = StringUtils.replace(
-          content,
-          "jakarta.persistence.Column",
-          "javax.persistence.Column"
-        );
-        replaceContent = StringUtils.replace(
-          replaceContent,
-          "jakarta.persistence.Entity",
-          "javax.persistence.Entity"
-        );
-        replaceContent = StringUtils.replace(
-          replaceContent,
-          "jakarta.persistence.Id",
-          "javax.persistence.Id"
-        );
-        replaceContent = StringUtils.replace(
-          replaceContent,
-          "jakarta.persistence.Table",
-          "javax.persistence.Table"
-        );
-        replaceContent = StringUtils.replace(
-          replaceContent,
-          "jakarta.persistence.UniqueConstraint",
-          "javax.persistence.UniqueConstraint"
-        );
-        replaceContent = StringUtils.replace(
-          replaceContent,
-          "jakarta.validation.constraints.NotNull",
-          "javax.validation.constraints.NotNull"
-        );
-        replaceContent = StringUtils.replace(
-          replaceContent,
-          "jakarta.validation.constraints.Size",
-          "javax.validation.constraints.Size"
-        );
-        Files.writeString(
-          file.toPath(),
-          replaceContent,
-          StandardCharsets.UTF_8,
-          StandardOpenOption.CREATE,
-          StandardOpenOption.TRUNCATE_EXISTING,
-          StandardOpenOption.WRITE
-        );
-      }
-    }
-  }
-}
+} 

@@ -1,0 +1,134 @@
+package {{packageName}}.impl;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.jooq.DSLContext;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Component;
+
+import {{packageName}}.{{repositoryClassName}};
+import {{packageName}}.tables.pojos.{{pojoClassName}};
+import static {{packageName}}.tables.{{tableConstant}}.*;
+
+/**
+ * jOOQ 實現的 {{repositoryClassName}}
+ * 展示如何優雅地結合 Spring Repository 模式和 jOOQ
+ */
+@Component
+public class {{repositoryClassName}}Impl implements {{repositoryClassName}} {
+
+    private final DSLContext dsl;
+
+    public {{repositoryClassName}}Impl(DSLContext dsl) {
+        this.dsl = dsl;
+    }
+
+    @Override
+    public Optional<{{pojoClassName}}> findById({{primaryKeyType}} id) {
+        return dsl.selectFrom({{tableConstant}})
+                  .where({{tableConstant}}.ID.eq(id))
+                  .fetchOptionalInto({{pojoClassName}}.class);
+    }
+
+    @Override
+    public List<{{pojoClassName}}> findAll() {
+        return dsl.selectFrom({{tableConstant}})
+                  .fetchInto({{pojoClassName}}.class);
+    }
+
+    @Override
+    public Page<{{pojoClassName}}> findAll(Pageable pageable) {
+        List<{{pojoClassName}}> content = dsl.selectFrom({{tableConstant}})
+                                             .limit(pageable.getPageSize())
+                                             .offset(pageable.getOffset())
+                                             .fetchInto({{pojoClassName}}.class);
+        
+        long total = dsl.selectCount()
+                        .from({{tableConstant}})
+                        .fetchOne(0, long.class);
+        
+        return new PageImpl<>(content, pageable, total);
+    }
+
+    @Override
+    public {{pojoClassName}} save({{pojoClassName}} entity) {
+        var record = dsl.newRecord({{tableConstant}}, entity);
+        
+        if (record.store() > 0) {
+            return record.into({{pojoClassName}}.class);
+        }
+        
+        throw new RuntimeException("Failed to save entity");
+    }
+
+    @Override
+    public List<{{pojoClassName}}> saveAll(List<{{pojoClassName}}> entities) {
+        return entities.stream()
+                      .map(this::save)
+                      .toList();
+    }
+
+    @Override
+    public void deleteById({{primaryKeyType}} id) {
+        dsl.deleteFrom({{tableConstant}})
+           .where({{tableConstant}}.ID.eq(id))
+           .execute();
+    }
+
+    @Override
+    public void delete({{pojoClassName}} entity) {
+        var record = dsl.newRecord({{tableConstant}}, entity);
+        record.delete();
+    }
+
+    @Override
+    public void deleteAll() {
+        dsl.deleteFrom({{tableConstant}}).execute();
+    }
+
+    @Override
+    public void deleteAll(List<{{pojoClassName}}> entities) {
+        entities.forEach(this::delete);
+    }
+
+    @Override
+    public boolean existsById({{primaryKeyType}} id) {
+        return dsl.fetchExists(
+            dsl.selectOne()
+               .from({{tableConstant}})
+               .where({{tableConstant}}.ID.eq(id))
+        );
+    }
+
+    @Override
+    public long count() {
+        return dsl.selectCount()
+                  .from({{tableConstant}})
+                  .fetchOne(0, long.class);
+    }
+    
+    // === 自定義查詢方法範例 ===
+    
+    /**
+     * 根據狀態查找（範例）
+     */
+    public List<{{pojoClassName}}> findByStatus(String status) {
+        return dsl.selectFrom({{tableConstant}})
+                  .where({{tableConstant}}.STATUS.eq(status))
+                  .fetchInto({{pojoClassName}}.class);
+    }
+    
+    /**
+     * 複雜查詢範例
+     */
+    public List<{{pojoClassName}}> findWithComplexCondition(String keyword) {
+        return dsl.selectFrom({{tableConstant}})
+                  .where({{tableConstant}}.NAME.likeIgnoreCase("%" + keyword + "%"))
+                  .or({{tableConstant}}.DESCRIPTION.likeIgnoreCase("%" + keyword + "%"))
+                  .orderBy({{tableConstant}}.CREATED_DATE.desc())
+                  .fetchInto({{pojoClassName}}.class);
+    }
+} 

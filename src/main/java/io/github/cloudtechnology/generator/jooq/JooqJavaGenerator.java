@@ -1,8 +1,5 @@
 package io.github.cloudtechnology.generator.jooq;
 
-import com.samskivert.mustache.Mustache;
-import com.samskivert.mustache.Template;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -16,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.regex.Pattern;
-import lombok.extern.slf4j.Slf4j;
+
 import org.apache.commons.io.IOUtils;
 import org.jooq.Name;
 import org.jooq.codegen.GeneratorStrategy.Mode;
@@ -35,6 +32,11 @@ import org.jooq.meta.TypedElementDefinition;
 import org.jooq.meta.UDTDefinition;
 import org.jooq.meta.UniqueKeyDefinition;
 import org.jooq.tools.StringUtils;
+
+import com.samskivert.mustache.Mustache;
+import com.samskivert.mustache.Template;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 自定義生成Java POJO類的邏輯
@@ -379,6 +381,10 @@ public class JooqJavaGenerator extends JavaGenerator {
               Map<String, String> repositoryVO = new HashMap();
               repositoryVO.put("packageName", getStrategy().getTargetPackage());
               repositoryVO.put("className", className);
+              repositoryVO.put(
+                "pojoClassName",
+                getStrategy().getJavaClassName(tableUdtOrEmbeddable, Mode.POJO)
+              );
               repositoryVO.put(
                 "primaryKeyType",
                 getJavaType(

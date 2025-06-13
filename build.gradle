@@ -78,30 +78,15 @@ graalvmNative {
 	}
 	binaries {
 		main {
-			// 強制在編譯時初始化 JOOQ 相關類
+			// 簡化的 JOOQ 配置
 			buildArgs.addAll([
-				'--initialize-at-build-time=org.jooq',
-				'--initialize-at-build-time=org.postgresql',
 				'--initialize-at-build-time=org.jooq.impl.SQLDataType',
 				'--initialize-at-build-time=org.jooq.impl.DefaultDataType',
 				'--initialize-at-build-time=org.jooq.impl.BuiltInDataType',
-				'--initialize-at-build-time=org.jooq.impl.AbstractDataType',
 				'--initialize-at-build-time=org.jooq.impl.DefaultBinding',
-				'--initialize-at-build-time=org.jooq.impl.ArrayDataType',
-				'--initialize-at-build-time=org.jooq.impl.DefaultDSLContext',
 				'--initialize-at-build-time=org.postgresql.Driver',
-				// 允許不完整的 classpath
 				'--allow-incomplete-classpath',
-				// 啟用詳細的錯誤報告
-				'--report-unsupported-elements-at-runtime',
-				'-H:+ReportExceptionStackTraces',
-				// 追蹤類初始化
-				'--trace-class-initialization=org.jooq.impl.SQLDataType',
-				'--trace-class-initialization=org.jooq.impl.DefaultDataType',
-				// 設定堆記憶體
-				'-J-Xmx4g',
-				// 禁用 fallback
-				'--no-fallback'
+				'-H:+ReportExceptionStackTraces'
 			])
 		}
 	}

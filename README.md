@@ -31,14 +31,18 @@ docker compose up -d
 
 使用以下命令下載並安裝 `generator-cli`
 
+下載最新版本
 ```bash
-# 下載最新版本
 curl -f -L -o generator-cli-linux-x86_64.zip "https://github.com/cloud-technology/generator-cli/releases/download/v20250421.1/generator-cli-linux-x86_64.zip"
+```
 
-# 解壓縮
+壓縮檔案
+```bash
 unzip generator-cli-linux-x86_64.zip
+```
 
-# 執行產生專案
+執行產生專案
+```bash
 ./generator-cli-linux-x86_64 generator
 ```
 
@@ -91,7 +95,7 @@ shell:>generator
 ? Please enter project name demo
 ? Please enter project description Demo project for Spring Boot
 ? Please enter package name com.example.demo
-? Please enter OpenAPI file path /Users/samzhu/workspace/test/openapi.yaml
+? Please enter OpenAPI file path /home/user/generator-cli/dev-resources/test/openapi.yaml
 ? Please enter database URL jdbc:postgresql://localhost:5432/mydatabase
 ? Please enter database username myuser
 ? Please enter database password ******
